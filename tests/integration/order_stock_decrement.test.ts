@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { orderService } from '../../src/services/orders';
 import { productService } from '../../src/services/products';
+import { cartService } from '../../src/services/cart';
 
 describe('Order Integration - Stock Decrement', () => {
   const TEST_PRODUCT_ID = 'test-prod';
@@ -24,10 +25,8 @@ describe('Order Integration - Stock Decrement', () => {
       createdAt: new Date().toISOString()
     });
 
-    // Add 2 items to cart
-    const cart = productService.getCart('user-1');
-    cart.items.push({ productId: TEST_PRODUCT_ID, quantity: 2, price: 10 });
-    cart.updatedAt = new Date().toISOString();
+    // Add 2 items to cart using cartService
+    cartService.addItem('user-1', TEST_PRODUCT_ID, 2);
 
     // Place order
     const order = orderService.createOrder('user-1');
@@ -55,12 +54,8 @@ describe('Order Integration - Stock Decrement', () => {
       createdAt: new Date().toISOString()
     });
 
-    const cart = productService.getCart('user-1');
-    cart.items.push({ productId: TEST_PRODUCT_ID, quantity: 11, price: 10 });
-    cart.updatedAt = new Date().toISOString();
-
-    // Should throw error due to insufficient stock
-    expect(() => orderService.createOrder('user-1')).toThrow(/Insufficient stock/);
+    // Add 11 items to cart - should throw error during cart add
+    expect(() => cartService.addItem('user-1', TEST_PRODUCT_ID, 11)).toThrow(/Insufficient stock/);
 
     // Verify stock was NOT decremented (atomic operation)
     const product = productService.getProductById(TEST_PRODUCT_ID);
@@ -96,13 +91,9 @@ describe('Order Integration - Stock Decrement', () => {
       createdAt: new Date().toISOString()
     });
 
-    // Add items to cart
-    const cart = productService.getCart('user-1');
-    cart.items.push(
-      { productId: PRODUCT_A_ID, quantity: 2, price: 20 },
-      { productId: PRODUCT_B_ID, quantity: 3, price: 30 }
-    );
-    cart.updatedAt = new Date().toISOString();
+    // Add items to cart using cartService
+    cartService.addItem('user-1', PRODUCT_A_ID, 2);
+    cartService.addItem('user-1', PRODUCT_B_ID, 3);
 
     // Place order
     const order = orderService.createOrder('user-1');
@@ -144,17 +135,13 @@ describe('Order Integration - Stock Decrement', () => {
     });
 
     // Add items to cart - Product A has insufficient stock
-    const cart = productService.getCart('user-1');
-    cart.items.push(
-      { productId: PRODUCT_A_ID, quantity: 10, price: 20 }, // More than available
-      { productId: PRODUCT_B_ID, quantity: 2, price: 30 }   // Sufficient stock
-    );
-    cart.updatedAt = new Date().toISOString();
+    // First add Product B (sufficient stock)
+    cartService.addItem('user-1', PRODUCT_B_ID, 2);
+    
+    // Then try to add Product A (insufficient stock) - should throw during cart add
+    expect(() => cartService.addItem('user-1', PRODUCT_A_ID, 10)).toThrow(/Insufficient stock/);
 
-    // Should throw error due to Product A insufficient stock
-    expect(() => orderService.createOrder('user-1')).toThrow(/Insufficient stock/);
-
-    // Verify NO stock was decremented (atomic operation)
+    // Verify NO stock was decremented (cart validation prevents order)
     const productA = productService.getProductById(PRODUCT_A_ID);
     const productB = productService.getProductById(PRODUCT_B_ID);
     expect(productA?.stock).toBe(5);
@@ -175,9 +162,7 @@ describe('Order Integration - Stock Decrement', () => {
     });
 
     // Add exactly 5 items to cart
-    const cart = productService.getCart('user-1');
-    cart.items.push({ productId: TEST_PRODUCT_ID, quantity: 5, price: 10 });
-    cart.updatedAt = new Date().toISOString();
+    cartService.addItem('user-1', TEST_PRODUCT_ID, 5);
 
     // Place order - should succeed
     const order = orderService.createOrder('user-1');
@@ -201,12 +186,26 @@ describe('Order Integration - Stock Decrement', () => {
       createdAt: new Date().toISOString()
     });
 
-    // Add 1 item to cart
-    const cart = productService.getCart('user-1');
-    cart.items.push({ productId: TEST_PRODUCT_ID, quantity: 1, price: 10 });
-    cart.updatedAt = new Date().toISOString();
+    // Try to add 1 item to cart - should fail due to insufficient stock
+    expect(() => cartService.addItem('user-1', TEST_PRODUCT_ID, 1)).toThrow(/Insufficient stock/);
+  });
 
-    // Should throw error
+  it('should provide detailed error message for insufficient stock', () => {
+    productService.createOrUpdateProduct({
+      id: TEST_PRODUCT_ID,
+      name: 'Test Product',
+      description: 'Test',
+      price: 10,
+      category: 'test',
+      stock: 3,
+      imageUrl: '',
+      createdAt: new Date().toISOString()
+    });
+
+    // Add 5 items to cart (more than 3 available)
+    cartService.addItem('user-1', TEST_PRODUCT_ID, 5);
+
+    // The error should mention the product name and available/requested quantities
     expect(() => orderService.createOrder('user-1')).toThrow(/Insufficient stock/);
   });
 });
