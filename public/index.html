@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acme Webapp</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
+    header { background: #1a1a2e; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 20px; font-weight: 600; }
+    .cart-badge { background: #e94560; color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+    nav { background: #16213e; padding: 8px 24px; display: flex; gap: 16px; }
+    nav a { color: #a0aec0; text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+    nav a.active, nav a:hover { background: #1a1a2e; color: white; }
+    main { max-width: 1200px; margin: 24px auto; padding: 0 24px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    h2 { font-size: 24px; margin-bottom: 16px; }
+
+    /* Products */
+    .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filters input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 260px; }
+    .filters select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+    .product-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .product-card h3 { font-size: 16px; margin-bottom: 4px; }
+    .product-card .category { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+    .product-card .desc { font-size: 13px; color: #666; margin-bottom: 12px; }
+    .product-card .price { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+    .product-card .stock { font-size: 12px; color: #888; }
+    .product-card .stock.low { color: #e94560; }
+    .product-card button { margin-top: 12px; padding: 8px 16px; background: #e94560; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; }
+    .product-card button:hover { background: #c73e54; }
+    .product-card button:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Cart */
+    .cart-empty { text-align: center; padding: 60px; color: #888; }
+    .cart-items { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .cart-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; gap: 16px; }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-item .name { flex: 1; font-weight: 500; }
+    .cart-item .qty { display: flex; align-items: center; gap: 8px; }
+    .cart-item .qty button { width: 28px; height: 28px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    .cart-item .qty span { min-width: 24px; text-align: center; }
+    .cart-item .item-total { font-weight: 600; min-width: 80px; text-align: right; }
+    .cart-item .remove { color: #e94560; cursor: pointer; border: none; background: none; font-size: 18px; padding: 4px; }
+    .cart-summary { background: white; border-radius: 10px; padding: 20px; margin-top: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .cart-summary .row { display: flex; justify-content: space-between; padding: 6px 0; }
+    .cart-summary .row.total { font-weight: 700; font-size: 18px; border-top: 2px solid #eee; padding-top: 12px; margin-top: 8px; }
+    .discount-row { display: flex; gap: 8px; margin-top: 12px; }
+    .discount-row input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; }
+    .discount-row button { padding: 8px 16px; background: #1a1a2e; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .checkout-btn { margin-top: 16px; padding: 12px; background: #e94560; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; }
+    .checkout-btn:hover { background: #c73e54; }
+
+    /* Orders */
+    .orders-list { display: flex; flex-direction: column; gap: 12px; }
+    .order-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .order-card .order-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .order-card .order-id { font-weight: 600; }
+    .order-card .order-status { padding: 4px 10px; border-radius: 12px; font-size: 12px; text-transform: uppercase; }
+    .order-card .order-status.pending { background: #fff3cd; color: #856404; }
+    .order-card .order-status.confirmed { background: #d4edda; color: #155724; }
+    .order-card .order-status.shipped { background: #cce5ff; color: #004085; }
+    .order-card .order-items { font-size: 13px; color: #666; }
+    .order-card .order-total { font-weight: 700; font-size: 18px; margin-top: 8px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 100; }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #e94560; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Acme Store</h1>
+    <div class="cart-badge" onclick="showPage('cart')" id="cart-badge">Cart (0)</div>
+  </header>
+  <nav>
+    <a href="#" class="active" data-page="products" onclick="showPage('products')">Products</a>
+    <a href="#" data-page="cart" onclick="showPage('cart')">Cart</a>
+    <a href="#" data-page="orders" onclick="showPage('orders')">Orders</a>
+  </nav>
+  <main>
+    <div id="products-page" class="page active">
+      <h2>Product Catalog</h2>
+      <div class="filters">
+        <input type="text" id="search" placeholder="Search products..." oninput="filterProducts()">
+        <select id="category-filter" onchange="filterProducts()">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="product-grid" id="product-grid"></div>
+    </div>
+    <div id="cart-page" class="page">
+      <h2>Shopping Cart</h2>
+      <div id="cart-content"></div>
+    </div>
+    <div id="orders-page" class="page">
+      <h2>Order History</h2>
+      <div id="orders-list" class="orders-list"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '/api';
+    const USER_ID = 'user_demo';
+    let allProducts = [];
+    let cart = { items: [], total: 0 };
+
+    // Toast notification
+    function toast(msg, isError) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => el.className = 'toast', 2500);
+    }
+
+    // Page navigation
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(name + '-page').classList.add('active');
+      document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a.dataset.page === name));
+      if (name === 'cart') renderCart();
+      if (name === 'orders') loadOrders();
+    }
+
+    // Products
+    async function loadProducts() {
+      const res = await fetch(API + '/products');
+      allProducts = await res.json();
+      renderProducts(allProducts);
+      const cats = [...new Set(allProducts.map(p => p.category))];
+      const sel = document.getElementById('category-filter');
+      cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = products.map(p => `
+        <div class="product-card" data-id="${p.id}">
+          <h3>${p.name}</h3>
+          <div class="category">${p.category}</div>
+          <div class="desc">${p.description}</div>
+          <div class="price">$${p.price.toFixed(2)}</div>
+          <div class="stock ${p.stock < 10 ? 'low' : ''}">${p.stock} in stock</div>
+          <button onclick="addToCart('${p.id}')" ${p.stock === 0 ? 'disabled' : ''}>
+            ${p.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function filterProducts() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const cat = document.getElementById('category-filter').value;
+      let filtered = allProducts;
+      if (q) filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+      if (cat) filtered = filtered.filter(p => p.category === cat);
+      renderProducts(filtered);
+    }
+
+    // Cart
+    async function loadCart() {
+      const res = await fetch(API + '/cart', { headers: { 'x-user-id': USER_ID } });
+      cart = await res.json();
+      document.getElementById('cart-badge').textContent = `Cart (${cart.items.reduce((s, i) => s + i.quantity, 0)})`;
+    }
+
+    async function addToCart(productId) {
+      await fetch(API + '/cart/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': USER_ID },
+        body: JSON.stringify({ productId, quantity: 1 })
+      });
+      await loadCart();
+      const p = allProducts.find(x => x.id === productId);
+      toast(`Added ${p?.name || productId} to cart`);
+    }
+
+    async function updateQty(productId, qty) {
+      if (qty < 1) { await removeFromCart(productId); return; }
+      await fetch(API + `/cart/items/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': USER_ID },
+        body: JSON.stringify({ quantity: qty })
+      });
+      await loadCart();
+      renderCart();
+    }
+
+    async function removeFromCart(productId) {
+      await fetch(API + `/cart/items/${productId}`, {
+        method: 'DELETE',
+        headers: { 'x-user-id': USER_ID }
+      });
+      await loadCart();
+      renderCart();
+    }
+
+    function renderCart() {
+      const el = document.getElementById('cart-content');
+      if (!cart.items || cart.items.length === 0) {
+        el.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+        return;
+      }
+      const items = cart.items.map(item => {
+        const p = allProducts.find(x => x.id === item.productId);
+        return `
+          <div class="cart-item">
+            <div class="name">${p?.name || item.productId}</div>
+            <div class="qty">
+              <button onclick="updateQty('${item.productId}', ${item.quantity - 1})">-</button>
+              <span>${item.quantity}</span>
+              <button onclick="updateQty('${item.productId}', ${item.quantity + 1})">+</button>
+            </div>
+            <div class="item-total">$${(item.price * item.quantity).toFixed(2)}</div>
+            <button class="remove" onclick="removeFromCart('${item.productId}')">&times;</button>
+          </div>`;
+      }).join('');
+
+      const subtotal = cart.items.reduce((s, i) => s + i.price * i.quantity, 0);
+      const tax = subtotal * 0.08;
+      el.innerHTML = `
+        <div class="cart-items">${items}</div>
+        <div class="cart-summary">
+          <div class="row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+          <div class="row"><span>Tax (8%)</span><span>$${tax.toFixed(2)}</span></div>
+          <div class="row total"><span>Total</span><span>$${(subtotal + tax).toFixed(2)}</span></div>
+          <div class="discount-row">
+            <input type="text" id="discount-code" placeholder="Discount code">
+            <button onclick="applyDiscount()">Apply</button>
+          </div>
+          <button class="checkout-btn" onclick="checkout()">Place Order</button>
+        </div>`;
+    }
+
+    async function applyDiscount() {
+      const code = document.getElementById('discount-code').value;
+      if (!code) { toast('Enter a discount code', true); return; }
+      toast(`Discount "${code}" will be applied at checkout`);
+    }
+
+    async function checkout() {
+      const code = document.getElementById('discount-code')?.value || '';
+      try {
+        const res = await fetch(API + '/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-user-id': USER_ID },
+          body: JSON.stringify({ discountCode: code || undefined })
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+        const order = await res.json();
+        toast(`Order ${order.id} placed! Total: $${order.total.toFixed(2)}`);
+        await loadCart();
+        showPage('orders');
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    // Orders
+    async function loadOrders() {
+      const res = await fetch(API + '/orders', { headers: { 'x-user-id': USER_ID } });
+      const orders = await res.json();
+      const el = document.getElementById('orders-list');
+      if (orders.length === 0) {
+        el.innerHTML = '<div class="cart-empty">No orders yet</div>';
+        return;
+      }
+      el.innerHTML = orders.map(o => `
+        <div class="order-card">
+          <div class="order-header">
+            <span class="order-id">${o.id}</span>
+            <span class="order-status ${o.status}">${o.status}</span>
+          </div>
+          <div class="order-items">${o.items.map(i => `${i.quantity}x ${i.productName}`).join(', ')}</div>
+          <div class="order-total">$${o.total.toFixed(2)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Init
+    loadProducts();
+    loadCart();
+  </script>
+</body>
+</html>
