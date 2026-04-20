@@ -1,7 +1,7 @@
 /**
- * Product Service — manages product catalog.
+ * Product Service — manages product catalog with pagination support.
  */
-import type { Product } from "../models/types";
+import type { Product, PaginatedResponse } from "../models/types";
 
 // Sample product data
 const products: Product[] = [
@@ -15,25 +15,111 @@ const products: Product[] = [
   { id: "p8", name: "Water Bottle", description: "Insulated stainless steel water bottle", price: 24.99, category: "accessories", stock: 500, imageUrl: "/images/bottle.jpg", createdAt: "2024-03-10" },
 ];
 
-export function getAllProducts(): Product[] {
-  return products;
+// Pagination constants
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+const MAX_OFFSET = 10000;
+
+/**
+ * Get all products with optional pagination
+ * @param limit - Number of items per page (default: 10, max: 100)
+ * @param offset - Number of items to skip (default: 0, max: 10000)
+ * @returns Paginated response with products and metadata
+ */
+export function getAllProducts(limit: number = DEFAULT_LIMIT, offset: number = 0): PaginatedResponse<Product> {
+  const safeLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+  const safeOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
+
+  const totalCount = products.length;
+  const paginatedProducts = products.slice(safeOffset, safeOffset + safeLimit);
+  const totalPages = Math.ceil(totalCount / safeLimit);
+
+  return {
+    data: paginatedProducts,
+    metadata: {
+      total_count: totalCount,
+      limit: safeLimit,
+      offset: safeOffset,
+      total_pages: totalPages,
+    },
+  };
 }
 
+/**
+ * Get a single product by ID
+ */
 export function getProductById(id: string): Product | undefined {
   return products.find((p) => p.id === id);
 }
 
-export function searchProducts(query: string): Product[] {
+/**
+ * Search products with optional pagination
+ * @param query - Search query string
+ * @param limit - Number of items per page (default: 10, max: 100)
+ * @param offset - Number of items to skip (default: 0, max: 10000)
+ * @returns Paginated response with matching products and metadata
+ */
+export function searchProducts(
+  query: string,
+  limit: number = DEFAULT_LIMIT,
+  offset: number = 0
+): PaginatedResponse<Product> {
   const lower = query.toLowerCase();
-  return products.filter(
+  const filteredProducts = products.filter(
     (p) => p.name.toLowerCase().includes(lower) || p.description.toLowerCase().includes(lower)
   );
+
+  const totalCount = filteredProducts.length;
+  const safeLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+  const safeOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
+  const paginatedProducts = filteredProducts.slice(safeOffset, safeOffset + safeLimit);
+  const totalPages = Math.ceil(totalCount / safeLimit);
+
+  return {
+    data: paginatedProducts,
+    metadata: {
+      total_count: totalCount,
+      limit: safeLimit,
+      offset: safeOffset,
+      total_pages: totalPages,
+    },
+  };
 }
 
-export function getProductsByCategory(category: string): Product[] {
-  return products.filter((p) => p.category === category);
+/**
+ * Get products by category with optional pagination
+ * @param category - Category to filter by
+ * @param limit - Number of items per page (default: 10, max: 100)
+ * @param offset - Number of items to skip (default: 0, max: 10000)
+ * @returns Paginated response with category products and metadata
+ */
+export function getProductsByCategory(
+  category: string,
+  limit: number = DEFAULT_LIMIT,
+  offset: number = 0
+): PaginatedResponse<Product> {
+  const filteredProducts = products.filter((p) => p.category === category);
+
+  const totalCount = filteredProducts.length;
+  const safeLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+  const safeOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
+  const paginatedProducts = filteredProducts.slice(safeOffset, safeOffset + safeLimit);
+  const totalPages = Math.ceil(totalCount / safeLimit);
+
+  return {
+    data: paginatedProducts,
+    metadata: {
+      total_count: totalCount,
+      limit: safeLimit,
+      offset: safeOffset,
+      total_pages: totalPages,
+    },
+  };
 }
 
+/**
+ * Get all unique categories
+ */
 export function getCategories(): string[] {
   return [...new Set(products.map((p) => p.category))];
 }

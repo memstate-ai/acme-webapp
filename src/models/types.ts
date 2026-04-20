@@ -68,3 +68,21 @@ export interface EmailTemplate {
   subject: string;
   htmlBody: string;
 }
+
+/**
+ * Pagination metadata for API responses
+ */
+export interface PaginationMetadata {
+  total_count: number;
+  limit: number;
+  offset: number;
+  total_pages: number;
+}
+
+/**
+ * Generic paginated response wrapper
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  metadata: PaginationMetadata;
+}
