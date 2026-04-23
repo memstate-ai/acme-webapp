@@ -37,3 +37,76 @@ export function getProductsByCategory(category: string): Product[] {
 export function getCategories(): string[] {
   return [...new Set(products.map((p) => p.category))];
 }
+
+/**
+ * Decrement product stock by the specified quantity.
+ * Validates that sufficient stock exists before decrementing.
+ * 
+ * @param productId - The ID of the product to decrement
+ * @param quantity - The quantity to decrement (must be positive)
+ * @returns The updated product
+ * @throws Error if product not found or insufficient stock
+ */
+export function decrementStock(productId: string, quantity: number): Product {
+  // Validate quantity is positive
+  if (quantity <= 0) {
+    throw new Error(`Invalid quantity: ${quantity}. Quantity must be positive.`);
+  }
+
+  const productIndex = products.findIndex((p) => p.id === productId);
+  if (productIndex === -1) {
+    throw new Error(`Product ${productId} not found`);
+  }
+
+  const product = products[productIndex];
+  
+  // Check if sufficient stock exists
+  if (product.stock < quantity) {
+    throw new Error(
+      `Insufficient stock for product "${product.name}". ` +
+      `Available: ${product.stock}, Requested: ${quantity}`
+    );
+  }
+
+  // Decrement stock
+  products[productIndex].stock -= quantity;
+  
+  return products[productIndex];
+}
+
+/**
+ * Update product stock to a specific value.
+ * Useful for restocking or inventory adjustments.
+ * 
+ * @param productId - The ID of the product to update
+ * @param newStock - The new stock value (must be non-negative)
+ * @returns The updated product
+ * @throws Error if product not found or invalid stock value
+ */
+export function updateStock(productId: string, newStock: number): Product {
+  if (newStock < 0) {
+    throw new Error(`Invalid stock value: ${newStock}. Stock cannot be negative.`);
+  }
+
+  const productIndex = products.findIndex((p) => p.id === productId);
+  if (productIndex === -1) {
+    throw new Error(`Product ${productId} not found`);
+  }
+
+  products[productIndex].stock = newStock;
+  return products[productIndex];
+}
+
+/**
+ * Check if a product has sufficient stock for a given quantity.
+ * 
+ * @param productId - The ID of the product to check
+ * @param quantity - The quantity to check availability for
+ * @returns true if sufficient stock exists, false otherwise
+ */
+export function hasSufficientStock(productId: string, quantity: number): boolean {
+  if (quantity <= 0) return false;
+  
+  const product = getProductById(productId);
+  return product !== undefined && product.stock >= quantity;
+}
