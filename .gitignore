@@ -1,0 +1,12 @@
+# Added by SwarmState
+node_modules/
+.env
+.env.*
+.DS_Store
+__pycache__/
+*.log
+dist/
+coverage/
+.next/
+.venv/
+venv/
